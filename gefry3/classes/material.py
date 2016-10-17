@@ -11,6 +11,3 @@ class Material(object):
 
     def __init__(self, number_dens, sigma_t):
         self.Sigma_T = number_dens * sigma_t
-
-    def alpha(self, dx):
-        return np.exp(-self.Sigma_T * dx)
