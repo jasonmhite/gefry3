@@ -30,9 +30,7 @@ class SimpleProblem(object):
             paths = self.domain.construct_path(r, detector.R)
             alpha = np.exp(-(paths * self.Sigma_T).sum())
 
-            responses[i] = (1 / (4. * np.pi * (dr ** 2))) \
-                    * alpha \
-                    * detector.compute_response(I)
+            responses[i] = detector.compute_response(I * alpha / (4. * np.pi * (dr ** 2))) 
 
         return responses.astype(np.float64)
 
