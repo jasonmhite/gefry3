@@ -2,9 +2,11 @@ import shapely.geometry as G
 import shapely.ops as O
 import numpy as np
 
+from gefry3.classes.meta import Dictable
+
 __all__ = ["Solid", "Domain"]
 
-class Solid(object):
+class Solid(Dictable):
     def __init__(self, vertices):
         self.vertices = vertices
 
@@ -20,9 +22,17 @@ class Solid(object):
         else:
             return intersect.length
 
-class Domain(object):
+    def _as_dict(self):
+        return {"vertices": self.vertices}
+
+    @classmethod
+    def _from_dict(cls, data):
+        return cls(data["vertices"])
+
+class Domain(Dictable):
     def __init__(self, bbox, solids):
         self.solids = solids
+        self.bbox_verts = bbox
         self.bbox = G.Polygon(bbox)
 
         self.all = O.cascaded_union([S.geom for S in self.solids])
@@ -37,3 +47,14 @@ class Domain(object):
 
         Li = L.intersection(self.empty)
         return np.array([Li.length] + [S.find_path_length(L) for S in self.solids])
+
+    def _as_dict(self):
+        solids = [i._as_dict() for i in self.solids]
+
+        return {"bbox": self.bbox_verts, "solids": solids}
+
+    @classmethod
+    def _from_dict(cls, data):
+        solids = [Solid._from_dict(i) for i in data["solids"]]
+
+        return cls(data["bbox"], solids)
