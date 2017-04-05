@@ -76,7 +76,7 @@ class SimpleProblem(BaseProblem):
 
 
 class PerturbableXSProblem(BaseProblem):
-    PROBLEM_TYPE = "Pertubable_XS_Problem"
+    PROBLEM_TYPE = "Perturbable_XS_Problem"
     HAS_REFERENCES = False
 
     def __init__(self, domain, source, detectors):
