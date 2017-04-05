@@ -17,7 +17,7 @@ class BaseProblem(Dictable):
 
         if len(loader) != 1:
             # This really shouldn't happen unless something is really screwed up
-            raise AmbiguousProblemSelectionError(problem_type)
+            raise AmbiguousProblemSelectionError(name)
         else:
             return loader[0] 
 
