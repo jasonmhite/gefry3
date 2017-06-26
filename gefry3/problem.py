@@ -13,13 +13,17 @@ class AmbiguousProblemSelectionError(Exception): pass
 class BaseProblem(Dictable):
     @classmethod
     def get_loader(cls, name):
-        loader = [i for i in cls.__subclasses__() if i.PROBLEM_TYPE == name]
+        # loader = [i for i in cls.__subclasses__() if i.PROBLEM_TYPE == name]
 
-        if len(loader) != 1:
-            # This really shouldn't happen unless something is really screwed up
-            raise AmbiguousProblemSelectionError(name)
-        else:
-            return loader[0] 
+        # if len(loader) != 1:
+            # # This really shouldn't happen unless something is really screwed up
+            # raise AmbiguousProblemSelectionError(name)
+        # else:
+            # return loader[0] 
+
+        return classRegistry[name]
+
+
 
 class SimpleProblem(BaseProblem):
     PROBLEM_TYPE = "Simple_Problem"
@@ -46,14 +50,26 @@ class SimpleProblem(BaseProblem):
 
         for (i, detector) in enumerate(self.detectors):
             # Compute attenuation
-            dr = np.linalg.norm(np.asarray(detector.R) - np.asarray(r))
+            # dr = np.linalg.norm(np.asarray(detector.R) - np.asarray(r))
             
-            paths = self.domain.construct_path(r, detector.R)
-            alpha = np.exp(-(paths * self.Sigma_T).sum())
+            # paths = self.domain.construct_path(r, detector.R)
+            # alpha = np.exp(-(paths * self.Sigma_T).sum())
 
-            responses[i] = detector.compute_response(I * alpha / (4. * np.pi * (dr ** 2))) 
+            # responses[i] = detector.compute_response(I * alpha / (4. * np.pi * (dr ** 2))) 
+
+            responses[i] = self.compute_single_response(detector, r, I)
 
         return responses.astype(np.float64)
+
+    def compute_single_response(self, detector, r, I):
+        dr = np.linalg.norm(np.asarray(detector.R) - np.asarray(r))
+
+        paths = self.domain.construct_path(r, detector.R)
+        alpha = np.exp(-(paths * self.Sigma_T).sum())
+
+        response = detector.compute_response(I * alpha / (4. * np.pi * (dr ** 2.)))
+
+        return response.astype(np.float64)
 
     def _as_dict(self):
         return {
@@ -75,14 +91,9 @@ class SimpleProblem(BaseProblem):
         )
 
 
-class PerturbableXSProblem(BaseProblem):
+class PerturbableXSProblem(SimpleProblem):
     PROBLEM_TYPE = "Perturbable_XS_Problem"
     HAS_REFERENCES = False
-
-    def __init__(self, domain, source, detectors):
-        self.domain = domain
-        self.source = source
-        self.detectors = detectors
 
     def __call__(self, r, I, interstitial_material, materials):
         # MATERIALS MUST BE IN SAME ORDER AS SOLIDS
@@ -95,22 +106,6 @@ class PerturbableXSProblem(BaseProblem):
             self.source,
             self.detectors
         )(r, I)
-
-    def _as_dict(self):
-        return {
-            "domain": self.domain._as_dict(),
-            "source": self.source._as_dict(),
-            "detectors": [i._as_dict() for i in self.detectors],
-        }
-
-    @classmethod
-    def _from_dict(cls, data):
-        return cls(
-            Domain._from_dict(data["domain"]),
-            Source._from_dict(data["source"]),
-            [Detector._from_dict(i) for i in data["detectors"]],
-        ) 
-
 
 def resolve_references(data_orig):
     data = deepcopy(data_orig)
@@ -149,7 +144,7 @@ def load_dict(data):
     problem_type = data["problem_type"]
 
     loader = BaseProblem.get_loader(problem_type)
-    spec = resolve_references(data["data"]) if loader.HAS_REFERENCES else data["data"]
+    spec = resolve_references(data["data"])
 
     return loader._from_dict(spec) 
 
@@ -168,3 +163,8 @@ def read_input(fname):
 def write_input(fname, problem):
     with open(fname, 'w') as f:
         f.write(yaml.safe_dump(dump_dict(problem)))
+
+classRegistry = {
+    "Simple_Problem": SimpleProblem,
+    "Perturbable_XS_Problem": PerturbableXSProblem,
+} 
