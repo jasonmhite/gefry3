@@ -83,11 +83,11 @@ def plot_hist_results(data, source_loc, gridsize, bins):
 
     g.set_axis_labels("x (m)", "y (m)")
 
-    g.ax_joint.axvline([source_loc[0]], color="black", linestyle="--", alpha=0.5)
-    g.ax_joint.axhline([source_loc[1]], color="black", linestyle="--", alpha=0.5)
+    g.ax_joint.axvline([source_loc[0]], color="red", linestyle="--", alpha=0.5)
+    g.ax_joint.axhline([source_loc[1]], color="red", linestyle="--", alpha=0.5)
 
-    g.ax_marg_x.axvline([source_loc[0]], color="black", linestyle="--", alpha=0.5)
-    g.ax_marg_y.axhline([source_loc[1]], color="black", linestyle="--", alpha=0.5)
+    g.ax_marg_x.axvline([source_loc[0]], color="red", linestyle="--", alpha=0.5)
+    g.ax_marg_y.axhline([source_loc[1]], color="red", linestyle="--", alpha=0.5)
 
     def set_ax_lim(xmin, ymin, xmax, ymax):
         g.ax_joint.set_xlim(xmin, xmax)
