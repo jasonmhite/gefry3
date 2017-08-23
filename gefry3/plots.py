@@ -22,11 +22,11 @@ def build_patches(p, **patchargs):
 
     return building_patches
 
-def render_patches(p, ax=None):
+def render_patches(p, ax=None, patchargs=None):
     if ax is None:
         ax = plt.gca() 
     
-    building_patches = build_patches(p)
+    building_patches = build_patches(p, **patchargs)
 
     for patch in building_patches:
         ax.add_patch(patch)
