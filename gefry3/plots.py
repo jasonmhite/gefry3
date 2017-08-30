@@ -68,7 +68,7 @@ def plot_response(p, response, bar_width=1, source_loc=None, fig=None):
         
     ax.set_zlim([0, 1.1 * max(response)])
 
-def plot_hist_results(data, source_loc, gridsize, bins):
+def plot_hist_results(data, source_loc, gridsize, bins, draw_loc=True, draw_mean=False):
     # gridsize = 20 and bins = 31 work well
 
     g = sb.jointplot(
@@ -83,11 +83,21 @@ def plot_hist_results(data, source_loc, gridsize, bins):
 
     g.set_axis_labels("x (m)", "y (m)")
 
-    g.ax_joint.axvline([source_loc[0]], color="red", linestyle="--", alpha=0.5)
-    g.ax_joint.axhline([source_loc[1]], color="red", linestyle="--", alpha=0.5)
+    if draw_loc:
+        # g.ax_joint.axvline([source_loc[0]], color="red", linestyle="--", alpha=0.5)
+        # g.ax_joint.axhline([source_loc[1]], color="red", linestyle="--", alpha=0.5)
 
-    g.ax_marg_x.axvline([source_loc[0]], color="red", linestyle="--", alpha=0.5)
-    g.ax_marg_y.axhline([source_loc[1]], color="red", linestyle="--", alpha=0.5)
+        g.ax_joint.scatter([source_loc[0]], [source_loc[1]], marker="+", color="red", zorder=10)
+
+        g.ax_marg_x.axvline([source_loc[0]], color="red", linestyle="--", alpha=0.5)
+        g.ax_marg_y.axhline([source_loc[1]], color="red", linestyle="--", alpha=0.5)
+
+    if draw_mean:
+        m = np.mean(data, axis=0)
+        g.ax_joint.scatter([m[0]], [m[1]], marker="+", color="black", zorder=10)
+
+        g.ax_marg_x.axvline([m[0]], color="black", linestyle="--", alpha=0.5)
+        g.ax_marg_y.axhline([m[1]], color="black", linestyle="--", alpha=0.5) 
 
     def set_ax_lim(xmin, ymin, xmax, ymax):
         g.ax_joint.set_xlim(xmin, xmax)
