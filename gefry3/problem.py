@@ -4,9 +4,19 @@ from gefry3.classes import *
 from gefry3.classes.meta import Dictable
 from copy import deepcopy
 
+import warnings
+
 # from abc import *
 
-__all__ = ["SimpleProblem", "PerturbableXSProblem", "read_input", "write_input", "load_dict", "dump_dict"]
+__all__ = [
+    "SimpleProblem",
+    "PerturbableXSProblem",
+    "read_input_problem",
+    "read_input",
+    "write_input",
+    "load_dict",
+    "dump_dict"
+]
 
 class AmbiguousProblemSelectionError(Exception): pass
 
@@ -168,13 +178,35 @@ def dump_dict(problem):
         "data": compact_references(problem._as_dict()) if problem.HAS_REFERENCES else problem.as_dict(),
     }
 
+# This function is deprecated! Originally you specified the type of problem
+# in the input deck, but I've changed it to not need this.
 def read_input(fname):
+    warnings.warn("Old style input loading is deprecated", DeprecationWarning)
     with open(fname, 'r') as f:
         return load_dict(yaml.safe_load(f.read()))
 
+def read_input_problem(fname, problem_type=None):
+    with open(fname, 'r') as f:
+        data = yaml.safe_load(f.read())
+
+    if problem_type is not None:
+        if "problem_type" in data and data["problem_type"] is not None:
+            ws = "Input specifies a problem type [{}], but user specified [{}] - the type in the input file will be overidden." \
+                .format(data["problem_type"], problem_type)
+
+            warnings.warn(ws)
+
+        data["problem_type"] = problem_type
+
+    elif "problem_type" not in data: # none in input, none provided
+        warnings.warn("No problem type provided and none in input file, defaulting to Simple_Problem")
+        data["problem_type"] = "Simple_Problem"
+
+    return load_dict(data)
+
 def write_input(fname, problem):
     with open(fname, 'w') as f:
-        f.write(yaml.safe_dump(dump_dict(problem)))
+        f.write(yaml.safe_dump(dump_dict(problem))) 
 
 classRegistry = {
     "Simple_Problem": SimpleProblem,
