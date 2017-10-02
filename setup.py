@@ -8,4 +8,7 @@ setup(
     packages=["gefry3"],
     install_requires=['shapely', 'numpy'],
     license="2-clause BSD (FreeBSD)",
-    )                     
+    extras_require={
+        "plots": ["matplotlib", "seaborn"],
+    },
+)                     
