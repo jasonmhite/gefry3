@@ -120,7 +120,7 @@ def plot_hist_results(data, source_loc, gridsize, bins, draw_loc=True, draw_mean
 
     if draw_loc:
         if use_plus:
-            g.ax_joint.scatter([source_loc[0]], [source_loc[1]], marker="+", color="red", zorder=10)
+            g.ax_joint.scatter([source_loc[0]], [source_loc[1]], marker="+", color="red", zorder=10, s=500, linewidths=1.5, label="Source Location")
         else:
             g.ax_joint.axvline([source_loc[0]], color="red", linestyle="--", alpha=0.5)
             g.ax_joint.axhline([source_loc[1]], color="red", linestyle="--", alpha=0.5)
@@ -131,7 +131,7 @@ def plot_hist_results(data, source_loc, gridsize, bins, draw_loc=True, draw_mean
     if draw_mean:
         m = np.mean(data, axis=0)
         if use_plus:
-            g.ax_joint.scatter([m[0]], [m[1]], marker="+", color="black", zorder=10)
+            g.ax_joint.scatter([m[0]], [m[1]], marker="+", color="black", zorder=10, s=500, linewidths=1.5, label="Posterior Mean")
         else:
             g.ax_joint.axvline([m[0]], color="black", linestyle="--", alpha=0.5)
             g.ax_joint.axhline([m[1]], color="black", linestyle="--", alpha=0.5) 
