@@ -10,7 +10,7 @@ P = gefry3.read_input_problem(
     problem_type="Perturbable_XS_Problem",
 )
 
-NS = int(1e3) # Number of samples
+NS = int(1e6) # Number of samples
 
 S0 = P.source.R # m
 I0 = P.source.I0 # Bq
