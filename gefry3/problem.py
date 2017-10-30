@@ -75,12 +75,13 @@ class SimpleProblem(BaseProblem):
         return np.array([self.compute_single_jacobian(d, r, I) for d in self.detectors])
 
     def compute_single_response(self, detector, r, I):
-        dr = np.linalg.norm(np.asarray(detector.R) - np.asarray(r))
+        #dr = np.linalg.norm(np.asarray(detector.R) - np.asarray(r))
 
         paths = self.domain.construct_path(r, detector.R)
         alpha = np.exp(-(paths * self.Sigma_T).sum())
 
-        response = detector.compute_response(I * alpha / (4. * np.pi * (dr ** 2.)))
+        #response = detector.compute_response(I * alpha / (4. * np.pi * (dr ** 2.)))
+        response = detector.compute_response(I * alpha, r)
 
         return response.astype(np.float64)
 
