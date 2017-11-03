@@ -56,6 +56,9 @@ class SimpleProblem(BaseProblem):
     def __call__(self, r, I):
         # Compute response to a source at (r,I)
 
+        r = np.array(r)
+        I = np.float64(I)
+
         responses = np.zeros_like(self.detectors)
 
         for (i, detector) in enumerate(self.detectors):
@@ -76,6 +79,8 @@ class SimpleProblem(BaseProblem):
 
     def compute_single_response(self, detector, r, I):
         #dr = np.linalg.norm(np.asarray(detector.R) - np.asarray(r))
+        r = np.array(r)
+        I = np.float64(I) 
 
         paths = self.domain.construct_path(r, detector.R)
         alpha = np.exp(-(paths * self.Sigma_T).sum())
@@ -86,6 +91,9 @@ class SimpleProblem(BaseProblem):
         return response.astype(np.float64)
 
     def compute_single_jacobian(self, detector, r, I):
+        r = np.array(r)
+        I = np.float64(I)  
+
         paths = self.domain.construct_path(r, detector.R) # Memoize this?
         alpha = np.exp(-(paths * self.Sigma_T)) 
 

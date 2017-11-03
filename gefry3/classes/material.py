@@ -14,8 +14,8 @@ class Material(Dictable):
         # self.Sigma_T = Sigma_T
 
     def __init__(self, number_dens, sigma_t):
-        self.number_dens = number_dens
-        self.sigma_t = sigma_t
+        self.number_dens = np.float64(number_dens)
+        self.sigma_t = np.float64(sigma_t)
         self.Sigma_T = number_dens * sigma_t
 
     def _as_dict(self):

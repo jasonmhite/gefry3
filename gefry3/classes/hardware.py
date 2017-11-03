@@ -1,16 +1,18 @@
 import numpy as np
+import pyst
 from gefry3.classes import *
 from gefry3.classes.meta import Dictable
 
 from shapely.geometry import MultiPoint, LineString
 from functools import partial
 
+
 __all__ = ["Source", "Detector", "OrientedPrismDetector"]
 
 class Source(Dictable):
     def __init__(self, R, I0):
-        self.R = R
-        self.I0 = I0
+        self.R = np.array(R)
+        self.I0 = np.float64(I0)
 
     def _as_dict(self):
         return {"R": self.R, "I0": self.I0}
@@ -21,12 +23,15 @@ class Source(Dictable):
 
 class Detector(Dictable):
     def __init__(self, R, epsilon, area, dwell):
-        self.R = R
-        self.epsilon = epsilon
-        self.area = area
-        self.dwell = dwell
+        self.R = np.array(R)
+        self.epsilon = np.float64(epsilon)
+        self.area = np.float64(area)
+        self.dwell = np.float64(dwell)
 
     def compute_response(self, I, r):
+        r = np.array(r)
+        I = np.float64(I)
+
         dr = np.linalg.norm(self.R - r)
         beta = 4 * np.pi * (np.linalg.norm(dr) ** 2)
 
@@ -49,39 +54,8 @@ class Detector(Dictable):
             data["dwell"],
         )
 
-def rotationMatrix(theta):
-    # Rotation matrix about z axis ccw from x axis
-
-    return np.array([
-        [np.cos(theta), -np.sin(theta), 0],
-        [np.sin(theta), np.cos(theta),  0],
-        [0,             0,              1],
-    ])
-
-def planarProjection(u, n):
-    # Projection of u onto plane with normal n
-    dn = np.linalg.norm(n, 2)
-
-    return u - (u.dot(n) / (dn ** 2)) * n
-
-# def sphereProjection(c, d, u):
-    # # Project u onto the sphere of radius d centered at u.
-    # # https://stackoverflow.com/questions/9604132/how-to-project-a-point-on-to-a-sphere
-    # # for the lazy.
-    # # c -> source location [3 vector]
-    # # d -> source-detector distance
-    # # u -> detector absolute position
-    # return c + r * (u - c) / np.linalg.norm(u - c)
-
-def sphereProjection(d, u):
-    # https://stackoverflow.com/questions/9604132/how-to-project-a-point-on-to-a-sphere
-    # for the lazy.
-    # d -> source-detector distance
-    # u -> detector relative position
-    return d * u / np.linalg.norm(u) 
-
-def vectorProjection(u, v):
-    return u.dot(v) / np.linalg.norm(v)
+def vec_2d_to_3d(x, val=0.0):
+    return np.hstack((x, np.atleast_1d(val)))
 
 class OrientedPrismDetector(Detector):
     # derives form detector but it's gonna override everything
@@ -90,16 +64,17 @@ class OrientedPrismDetector(Detector):
         """
         R is the coordinate of the center of mass
         L is [l, w, h] dimensions
-        Theta is rotation in radians ccw from the x-axis
+        Theta is rotation in radians ccw from the x-axis.
 
         Detector will be placed s.t. the COM is coplanar to the source.
         """
 
         self.R = np.array(R)
+        self._R3 = vec_2d_to_3d(self.R)
         self.dims = np.array(L)
-        self.theta = theta
-        self.dwell = dwell
-        self.epsilon = epsilon
+        self.theta = np.float64(theta)
+        self.dwell = np.float64(dwell)
+        self.epsilon = np.float64(epsilon)
         self.d = np.linalg.norm(self.R)
 
         l, w, h = self.dims
@@ -119,71 +94,24 @@ class OrientedPrismDetector(Detector):
         # Center because I gave the coordinates as corner-relative
         self.vertices -= self.dims / 2.
 
-        # # Apply the rotation matrix to all vertices, see
-        # # http://ajcr.net/Basic-guide-to-einsum/ because einsum is 
-        # # pure sorcery.
-        self.vertices = np.einsum(
-            "ij,kj->ki",
-            rotationMatrix(self.theta),
-            self.vertices,
-        )
+        self._rotation_matrix = pyst.RotationMatrix \
+            . rot(self.theta, direction="z")
 
-        # Translate points to their absolute position
-        self.vertices += np.append(self.R, 0)
+        self.vertices = self._rotation_matrix(self.vertices)
+        self.vertices += self._R3
 
-    def _proj(self, r, sphere=False):
-        # center points relative to source
-        r_0 = self.R - r
-        d_0 = np.linalg.norm(r_0)
+        corner = self.vertices[0]
+        self.center = self.vertices[0] + self._rotation_matrix(self.dims) / 2.
+        
+        # Vectors defining the prism
+        self.r_x, self.r_y, self.r_z = self._rotation_matrix(np.diag([l, w, h]))
 
-        relativePoints = self.vertices - np.append(r, 0)
-
-        # project points onto sphere
-        sphereProjectedPoints = np.array([sphereProjection(d_0, x) for x in relativePoints])
-
-        if sphere:
-            return sphereProjectedPoints
-
-        # now project them onto a plane to approximate the subtended area
-
-        basis = np.array([
-            [0, 0, 1],
-            np.cross([0, 0, 1], np.append(r_0, 0))
-        ])
-        basis[1] /= np.linalg.norm(basis[1])
-
-        verticesPlanar = np.einsum("ij,kj->ik", sphereProjectedPoints, basis)
-
-        return verticesPlanar
-
-        # return MultiPoint(verticesPlanar).convex_hull
-
-    def _getViewFrom(self, r, outline=False):
-        v = self._proj(r, sphere=False)
-
-        if outline:
-            return LineString([
-                v[0],
-                v[1],
-                v[2],
-                v[3],
-                v[0],
-                v[4],
-                v[5],
-                v[6],
-                v[7],
-                v[4],
-                v[5],
-                v[1],
-                v[2],
-                v[6],
-                v[7],
-                v[3],
-            ])
-
-        else:
-            return MultiPoint(self._proj(r)).convex_hull
-
-    def area(self, r):
-        # r is absolute position of source
-        return self._getViewFrom(r, outline=False).area
+        # Assuming they are coplanar we can skip the top and bottom to save computation
+        self.facets = [
+            pyst.RectangularFacet(corner, self.r_x, self.r_z, sense=1.0, name="Front"),
+            pyst.RectangularFacet(corner + self.r_y, self.r_x, self.r_z, sense=-1.0, name="Back"),
+            # pyst.RectangularFacet(corner + self.r_z, self.r_x, self.r_y, sense=1.0, name="Top"),
+            # pyst.RectangularFacet(corner, self.r_x, self.r_y, sense=-1.0, name="Bottom"),
+            pyst.RectangularFacet(corner + self.r_x, self.r_y, self.r_z, sense=1.0, name="Right"),
+            pyst.RectangularFacet(corner, self.r_y, self.r_z, sense=-1.0, name="Left"),
+        ]
