@@ -118,7 +118,7 @@ class SimpleProblem(BaseProblem):
             Material._from_dict(data["interstitial_material"]),
             [Material._from_dict(i) for i in data["materials"]],
             Source._from_dict(data["source"]),
-            [Detector._from_dict(i) for i in data["detectors"]],
+            [detectorRegistry[i["type"]]._from_dict(i) for i in data["detectors"]],
         )
 
 
@@ -194,7 +194,7 @@ def read_input(fname):
     with open(fname, 'r') as f:
         return load_dict(yaml.safe_load(f.read()))
 
-def read_input_problem(fname, problem_type=None):
+def read_input_problem(fname, problem_type=None, debug=False):
     with open(fname, 'r') as f:
         data = yaml.safe_load(f.read())
 
@@ -211,7 +211,20 @@ def read_input_problem(fname, problem_type=None):
         warnings.warn("No problem type provided and none in input file, defaulting to Simple_Problem")
         data["problem_type"] = "Simple_Problem"
 
-    return load_dict(data)
+    assumed_default_detectors = []
+    for i, detector in enumerate(data["data"]["detectors"]):
+        if "type" not in detector:
+            assumed_default_detectors.append(i)
+            data["data"]["detectors"][i]["type"] = "Point"
+
+    if assumed_default_detectors != []:
+        ws = "Some detectors did not specify type, assuming point detector for: {}".format(assumed_default_detectors)
+        warnings.warn(ws)
+
+    if debug:
+        return data
+    else:
+        return load_dict(data)
 
 def write_input(fname, problem):
     with open(fname, 'w') as f:
