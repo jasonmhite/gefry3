@@ -22,7 +22,7 @@ def build_patches(p, **patchargs):
 
     return building_patches
 
-def render_patches(p, ax=None, patchargs=None):
+def render_patches(p, ax=None, patchargs={}):
     if ax is None:
         ax = plt.gca() 
     
@@ -41,6 +41,8 @@ def set_bounds(p, ax=None):
     ax.set_ylim([yl, yh])
 
 # TODO: detectors and sources
+
+
 
 class GefryJointHistogram(sb.axisgrid.JointGrid):
     def __init__(self, other, data):
@@ -103,7 +105,15 @@ def plot_response(p, response, bar_width=1, source_loc=None, fig=None):
         
     ax.set_zlim([0, 1.1 * max(response)])
 
-def plot_hist_results(data, source_loc, gridsize, bins, draw_loc=True, draw_mean=False, use_plus=False):
+def lazy_mode(data, bins=100):
+    w, edges = np.histogram(data, bins=bins)
+    
+    wmax_ind = w.argmax()
+    mode = 0.5 * (edges[wmax_ind + 1] + edges[wmax_ind])
+
+    return mode 
+
+def plot_hist_results(data, source_loc, gridsize, bins, draw_loc=True, draw_mean=False, use_plus=True, draw_mode=True, mode_bins=100):
     # gridsize = 20 and bins = 31 work well
 
     g = sb.jointplot(
@@ -130,14 +140,31 @@ def plot_hist_results(data, source_loc, gridsize, bins, draw_loc=True, draw_mean
 
     if draw_mean:
         m = np.mean(data, axis=0)
+
+        if draw_mode:
+            c = "blue"
+        else:
+            c = "black"
         if use_plus:
-            g.ax_joint.scatter([m[0]], [m[1]], marker="+", color="black", zorder=10, s=500, linewidths=1.5, label="Posterior Mean")
+            g.ax_joint.scatter([m[0]], [m[1]], marker="+", color=c, zorder=10, s=500, linewidths=1.5, label="Posterior Mean")
+        else:
+            g.ax_joint.axvline([m[0]], color=c, linestyle="--", alpha=0.5)
+            g.ax_joint.axhline([m[1]], color=c, linestyle="--", alpha=0.5) 
+
+        g.ax_marg_x.axvline([m[0]], color=c, linestyle="--", alpha=0.5)
+        g.ax_marg_y.axhline([m[1]], color=c, linestyle="--", alpha=0.5) 
+
+    if draw_mode:
+        m = (lazy_mode(data[:, 0], bins=mode_bins), lazy_mode(data[:, 1], bins=mode_bins))
+
+        if use_plus:
+            g.ax_joint.scatter([m[0]], [m[1]], marker="+", color="black", zorder=10, s=500, linewidths=1.5, label="Posterior Mode")
         else:
             g.ax_joint.axvline([m[0]], color="black", linestyle="--", alpha=0.5)
             g.ax_joint.axhline([m[1]], color="black", linestyle="--", alpha=0.5) 
 
         g.ax_marg_x.axvline([m[0]], color="black", linestyle="--", alpha=0.5)
-        g.ax_marg_y.axhline([m[1]], color="black", linestyle="--", alpha=0.5) 
+        g.ax_marg_y.axhline([m[1]], color="black", linestyle="--", alpha=0.5)  
 
     g = GefryJointHistogram(g, data)
 
