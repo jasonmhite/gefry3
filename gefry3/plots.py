@@ -7,6 +7,11 @@ from matplotlib.patches import Polygon
 from mpl_toolkits.mplot3d import Axes3D
 import mpl_toolkits.mplot3d.art3d as art3d
 
+# NOTE: These are some tools I've made to make specific plots that I use
+# regularly. The options and variations are probably specific to the
+# exact sorts of plots I need, so maybe you should consider these more
+# as examples than something to use directly.
+
 __all__ = ["render_patches", "set_bounds", "plot_response", "plot_hist_results"]
 
 def build_patches(p, **patchargs):
@@ -79,31 +84,48 @@ class GefryJointHistogram(sb.axisgrid.JointGrid):
 
         return xmin, ymin, xmax, ymax 
 
-def plot_response(p, response, bar_width=1, source_loc=None, fig=None):
+def plot_response(
+    p,
+    response,
+    bar_width=1,
+    source_loc=None,
+    fig=None,
+    offset=(0.0, 0.0),
+    color="#00ceaa",
+    draw_extras=True,
+    ax=None,
+    label=None,
+    set_zlim=True,
+):
     if fig is None:
         fig = plt.gcf()
         
     if source_loc is None:
         source_loc = p.source.R
+
+    dx, dy = offset
         
     detector_locs = np.array([i.R for i in p.detectors])
     
-    ax = fig.add_subplot(111, projection='3d')
-    
-    patches = build_patches(p, alpha=0.3)
-    
-    for patch in patches:
-        ax.add_patch(patch)
-        art3d.patch_2d_to_3d(patch)    
+    if ax is None:
+        ax = fig.add_subplot(111, projection='3d')
         
-    ax.bar3d(detector_locs[:, 0], detector_locs[:, 1], np.zeros_like(response), bar_width, bar_width, response, color="#00ceaa")
-    ax.scatter(*detector_locs.T)
-    
-    ax.scatter([source_loc[0]], [source_loc[1]], marker='*', color="red")
-    
-    set_bounds(p, ax=ax)
+    ax.bar3d(detector_locs[:, 0] + dx, detector_locs[:, 1] + dy, np.zeros_like(response), bar_width, bar_width, response, color=color, edgecolor=color)
+    if draw_extras:
+        ax.scatter([source_loc[0]], [source_loc[1]], marker='*', color="red", label="Source")
+        ax.scatter(*detector_locs.T, label="Detector")
+        patches = build_patches(p, alpha=0.3)
         
-    ax.set_zlim([0, 1.1 * max(response)])
+        for patch in patches:
+            ax.add_patch(patch)
+            art3d.patch_2d_to_3d(patch)        
+
+        set_bounds(p, ax=ax)
+        
+    if set_zlim:
+        ax.set_zlim([0, 1.1 * max(response)])
+
+    return (fig, ax)
 
 def lazy_mode(data, bins=100):
     w, edges = np.histogram(data, bins=bins)
