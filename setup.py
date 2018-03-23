@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="gefry",
-    version="3.4.2",
+    version="3.5.2",
     author="Jason M. Hite",
     packages=["gefry3"],
     install_requires=['shapely', 'numpy'],
