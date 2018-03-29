@@ -33,8 +33,6 @@ class BaseProblem(Dictable):
 
         return classRegistry[name]
 
-
-
 class SimpleProblem(BaseProblem):
     PROBLEM_TYPE = "Simple_Problem"
     HAS_REFERENCES = True
