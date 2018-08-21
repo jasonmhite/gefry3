@@ -274,4 +274,5 @@ def write_input(fname, problem):
 classRegistry = {
     "Simple_Problem": SimpleProblem,
     "Perturbable_XS_Problem": PerturbableXSProblem,
+    "Binary_Domain_Problem": BinaryDomainProblem,
 } 
