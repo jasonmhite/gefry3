@@ -48,6 +48,17 @@ class Domain(Dictable):
         Li = L.intersection(self.empty)
         return np.array([Li.length] + [S.find_path_length(L) for S in self.solids])
 
+    def is_intersect(self, a, b):
+        L = G.LineString([a, b])
+
+        for S in self.solids:
+            dl = S.find_path_length(L)
+            if S.find_path_length(L) > 0.0: # ray intersects at least one geometry object
+                return False
+
+        return True
+        
+
     def _as_dict(self):
         solids = [i._as_dict() for i in self.solids]
 

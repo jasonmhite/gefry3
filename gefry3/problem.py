@@ -11,6 +11,7 @@ import warnings
 __all__ = [
     "SimpleProblem",
     "PerturbableXSProblem",
+    "BinaryDomainProblem",
     "read_input_problem",
     "read_input",
     "write_input",
@@ -135,6 +136,48 @@ class PerturbableXSProblem(SimpleProblem):
             self.source,
             self.detectors
         )(r, I)
+
+class BinaryDomainProblem(SimpleProblem):
+    PROBLEM_TYPE = "Binary_Domain_Problem"
+    HAS_REFERENCES = False
+
+    def __init__(self, domain, interstitial_material, source, detectors):
+        self.domain = domain
+
+        self.source = source
+        self.interstitial_material = interstitial_material
+        self.detectors = detectors
+
+    def compute_single_response(self, detector, r, I):
+        r = np.array(r)
+        I = np.float64(I)
+
+        if self.domain.is_intersect(r, detector.R):
+            dr = np.linalg.norm(r - detector.R)
+            alpha = np.exp(-dr * self.interstitial_material.Sigma_T)
+
+            response = detector.compute_response(I * alpha, r)
+
+            return response.astype(np.float64)
+
+        else: return np.int64(0.0)
+
+    def _as_dict(self):
+        return {
+             "domain": self.domain._as_dict(),
+            "interstitial_material": self.interstitial_material._as_dict(),
+            "source": self.source._as_dict(),
+            "detectors": [i._as_dict() for i in self.detectors],
+        } 
+
+    @classmethod
+    def _from_dict(cls, data):
+        return cls(
+            Domain._from_dict(data["domain"]),
+            Material._from_dict(data["interstitial_material"]),
+            Source._from_dict(data["source"]),
+            [detectorRegistry[i["type"]]._from_dict(i) for i in data["detectors"]],
+        ) 
 
 def resolve_references(data_orig):
     data = deepcopy(data_orig)
