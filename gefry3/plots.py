@@ -135,6 +135,15 @@ def lazy_mode(data, bins=100):
 
     return mode 
 
+def lazy_mode_nd(data, bins=100):
+    H, *edges = np.histogramdd(data, bins=bins)
+    edges = np.vstack(edges)
+    
+    imax = np.unravel_index(np.argmax(H, axis=None), H.shape)
+    
+    # This fails if max is on the right boundary but whatever
+    return 0.5 * np.array([edges[j][i + 1] + edges[j][i] for j, i in enumerate(imax)])
+
 def plot_hist_results(data, source_loc, gridsize, bins, draw_loc=True, draw_mean=False, use_plus=True, draw_mode=True, mode_bins=100):
     # gridsize = 20 and bins = 31 work well
 
@@ -177,7 +186,8 @@ def plot_hist_results(data, source_loc, gridsize, bins, draw_loc=True, draw_mean
         g.ax_marg_y.axhline([m[1]], color=c, linestyle="--", alpha=0.5) 
 
     if draw_mode:
-        m = (lazy_mode(data[:, 0], bins=mode_bins), lazy_mode(data[:, 1], bins=mode_bins))
+        # m = (lazy_mode(data[:, 0], bins=mode_bins), lazy_mode(data[:, 1], bins=mode_bins))
+        m = lazy_mode_nd(data, bins=mode_bins)
 
         if use_plus:
             g.ax_joint.scatter([m[0]], [m[1]], marker="+", color="black", zorder=10, s=500, linewidths=1.5, label="Posterior Mode")
