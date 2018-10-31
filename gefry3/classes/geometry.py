@@ -48,13 +48,13 @@ class Domain(Dictable):
         Li = L.intersection(self.empty)
         return np.array([Li.length] + [S.find_path_length(L) for S in self.solids])
 
-    def is_intersect(self, a, b):
+    def is_intersect(self, a, b, threshold=0.0):
         L = G.LineString([a, b])
 
         for S in self.solids:
             dl = S.find_path_length(L)
-            if S.find_path_length(L) > 0.0: # ray intersects at least one geometry object
-                return False
+            if S.find_path_length(L) > threshold: # ray intersects at least one geometry object
+                return False                      # for greater than threshold distance
 
         return True
         

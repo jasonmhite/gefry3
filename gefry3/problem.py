@@ -123,7 +123,7 @@ class SimpleProblem(BaseProblem):
 
 class PerturbableXSProblem(SimpleProblem):
     PROBLEM_TYPE = "Perturbable_XS_Problem"
-    HAS_REFERENCES = False
+    HAS_REFERENCES = True
 
     def __call__(self, r, I, interstitial_material, materials):
         # MATERIALS MUST BE IN SAME ORDER AS SOLIDS
@@ -141,18 +141,19 @@ class BinaryDomainProblem(SimpleProblem):
     PROBLEM_TYPE = "Binary_Domain_Problem"
     HAS_REFERENCES = False
 
-    def __init__(self, domain, interstitial_material, source, detectors):
+    def __init__(self, domain, interstitial_material, distance_threshold, source, detectors):
         self.domain = domain
 
         self.source = source
         self.interstitial_material = interstitial_material
         self.detectors = detectors
+        self.distance_threshold = distance_threshold
 
     def compute_single_response(self, detector, r, I):
         r = np.array(r)
         I = np.float64(I)
 
-        if self.domain.is_intersect(r, detector.R):
+        if self.domain.is_intersect(r, detector.R, self.distance_threshold):
             dr = np.linalg.norm(r - detector.R)
             alpha = np.exp(-dr * self.interstitial_material.Sigma_T)
 
@@ -166,6 +167,7 @@ class BinaryDomainProblem(SimpleProblem):
         return {
              "domain": self.domain._as_dict(),
             "interstitial_material": self.interstitial_material._as_dict(),
+            "distance_threshold": self.distance_threshold,
             "source": self.source._as_dict(),
             "detectors": [i._as_dict() for i in self.detectors],
         } 
@@ -175,6 +177,7 @@ class BinaryDomainProblem(SimpleProblem):
         return cls(
             Domain._from_dict(data["domain"]),
             Material._from_dict(data["interstitial_material"]),
+            data["distance_threshold"],
             Source._from_dict(data["source"]),
             [detectorRegistry[i["type"]]._from_dict(i) for i in data["detectors"]],
         ) 
@@ -216,7 +219,11 @@ def load_dict(data):
     problem_type = data["problem_type"]
 
     loader = BaseProblem.get_loader(problem_type)
-    spec = resolve_references(data["data"])
+
+    if loader.HAS_REFERENCES:
+        spec = resolve_references(data["data"])
+    else:
+        spec = data["data"]
 
     return loader._from_dict(spec) 
 
@@ -225,7 +232,7 @@ def dump_dict(problem):
 
     return {
         "problem_type": problem_type,
-        "data": compact_references(problem._as_dict()) if problem.HAS_REFERENCES else problem.as_dict(),
+        "data": compact_references(problem._as_dict()) if problem.HAS_REFERENCES else problem._as_dict(),
     }
 
 # This function is deprecated! Originally you specified the type of problem
@@ -267,9 +274,21 @@ def read_input_problem(fname, problem_type=None, debug=False):
     else:
         return load_dict(data)
 
+# This is kludgey and will probably break
+class MyDumper(yaml.Dumper):
+    def represent_data(self, data):
+        if isinstance(data, np.ndarray):
+            return self.represent_data(data.tolist())
+        if isinstance(data, np.float64):
+            return self.represent_data(float(data))
+        if isinstance(data, tuple):
+            return self.represent_data(list(data))
+        
+        return super().represent_data(data)
+
 def write_input(fname, problem):
     with open(fname, 'w') as f:
-        f.write(yaml.safe_dump(dump_dict(problem))) 
+        f.write(yaml.dump(dump_dict(problem), Dumper=MyDumper)) 
 
 classRegistry = {
     "Simple_Problem": SimpleProblem,
