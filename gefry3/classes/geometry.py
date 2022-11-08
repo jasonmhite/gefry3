@@ -35,7 +35,8 @@ class Domain(Dictable):
         self.bbox_verts = bbox
         self.bbox = G.Polygon(bbox)
 
-        self.all = O.cascaded_union([S.geom for S in self.solids])
+        # self.all = O.cascaded_union([S.geom for S in self.solids])
+        self.all = O.unary_union([S.geom for S in self.solids])
 
         # Check bounding box is a bounding box
         assert(self.all.difference(self.bbox).is_empty)
